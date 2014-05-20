@@ -1,0 +1,13 @@
+# B. A test (test2.in, test2.std) that several moves of a fully manual 
+#  game work properly.   Again, use 'dump' to check the result.
+java -ea jump61.Main
+None
+===#1===
+size 2
+manual blue
+start
+2 2
+1 2
+dump
+quit
+===#2===

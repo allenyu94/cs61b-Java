@@ -1,0 +1,230 @@
+package jump61;
+
+import java.util.ArrayDeque;
+import java.util.Stack;
+
+import static jump61.Color.*;
+
+/** A Jump61 board state.
+ *  @author Allen Yu
+ */
+class MutableBoard extends Board {
+
+    /** An N x N board in initial configuration. */
+    MutableBoard(int N) {
+        super();
+        _N = N;
+        jumping = 0;
+        setBoard(new Square[size()][size()]);
+        clear(size());
+    }
+
+    /** A board whose initial contents are copied from BOARD0. Clears the
+     *  undo history. */
+    MutableBoard(Board board0) {
+        super();
+        jumping = 0;
+        copy(board0);
+    }
+
+    @Override
+    void clear(int N) {
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                getBoard()[i][j] = new Square();
+            }
+        }
+        _N = N;
+        _moves = 1;
+        stack.clear();
+        stack.push(hash());
+    }
+
+    @Override
+    void copy(Board board2) {
+        setBoard(new Square[board2.size()][board2.size()]);
+        for (int i = 0; i < board2.size(); i++) {
+            for (int k = 0; k < board2.size(); k++) {
+                getBoard()[i][k] = new Square();
+                getBoard()[i][k].setcolor(board2.color(i + 1, k + 1));
+                getBoard()[i][k].setSpots(board2.spots(i + 1, k + 1));
+            }
+        }
+        _N = board2.size();
+        _moves = board2.numMoves();
+        stack.push(hash());
+    }
+
+    @Override
+    int size() {
+        return _N;
+    }
+
+    @Override
+    int spots(int r, int c) {
+        return getSquare(r, c).spots();
+    }
+
+    @Override
+    int spots(int n) {
+        return getSquare(n).spots();
+    }
+
+    @Override
+    Color color(int r, int c) {
+        return getSquare(r, c).color();
+    }
+
+    @Override
+    Color color(int n) {
+        return getSquare(n).color();
+    }
+
+    @Override
+    int numMoves() {
+        return _moves;
+    }
+
+    @Override
+    int numOfColor(Color color) {
+        int count = 0;
+        for (int i = 0; i < size(); i++) {
+            for (int j = 0; j < size(); j++) {
+                if (getBoard()[i][j].color().equals(color)) {
+                    count += 1;
+                }
+            }
+        }
+        return count;
+    }
+
+    @Override
+    void addSpot(Color player, int r, int c) {
+        getSquare(r, c).addspot();
+        getSquare(r, c).setcolor(player);
+        if (getSquare(r, c).spots() > neighbors(r, c)) {
+            jumping += 1;
+            jump(sqNum(r, c));
+            jumping -= 1;
+        }
+        if (jumping == 0) {
+            addStack();
+            _moves += 1;
+        }
+    }
+
+    @Override
+    void addSpot(Color player, int n) {
+        getSquare(n).addspot();
+        getSquare(n).setcolor(player);
+        if (getSquare(n).spots() > neighbors(n)) {
+            jumping += 1;
+            jump(n);
+            jumping -= 1;
+        }
+        if (jumping == 0) {
+            addStack();
+            _moves += 1;
+        }
+    }
+
+    @Override
+    void set(int r, int c, int num, Color player) {
+        getBoard()[r - 1][c - 1] = new Square(num, player);
+        stack.clear();
+    }
+
+    @Override
+    void set(int n, int num, Color player) {
+        if (getSquare(n) != null) {
+            getSquare(n).setcolor(player);
+            getSquare(n).setSpots(num);
+        }
+        getBoard()[row(n) - 1][col(n) - 1] = new Square(num, player);
+        stack.clear();
+    }
+
+    @Override
+    void setMoves(int num) {
+        assert num > 0;
+        _moves = num;
+        stack.clear();
+    }
+
+    @Override
+    void undo() {
+        stack.pop();
+        String curr = stack.peek();
+        char[] items = curr.toCharArray();
+        int iter = 0;
+        for (int i = 0; i < size(); i++) {
+            for (int k = 0; k < size(); k++) {
+                if (items[iter] == 'x') {
+                    getBoard()[i][k] = new Square();
+                } else {
+                    int spots = Integer.parseInt(String.valueOf(items[iter]));
+                    String str = String.valueOf(items[iter + 1]);
+                    Color color;
+                    if (str.equals("r")) {
+                        color = RED;
+                    } else {
+                        color = BLUE;
+                    }
+                    getBoard()[i][k] = new Square(spots, color);
+                    iter += 1;
+                }
+                iter += 1;
+            }
+        }
+    }
+
+    /** Adds another stack onto the undostack. */
+    private void addStack() {
+        stack.push(hash());
+    }
+
+    /** Do all jumping on this board, assuming that initially, S is the only
+     *  square that might be over-full. */
+    private void jump(int S) {
+        jumps.clear();
+        jumps.push(S);
+        while (!jumps.isEmpty()) {
+            if (getWinner() != null) {
+                return;
+            }
+            int nxt = jumps.pop();
+            if (getSquare(nxt).spots() > neighbors(nxt)) {
+                getSquare(nxt).setSpots(getSquare(nxt).spots()
+                        - neighbors(nxt));
+                if (exists(nxt - size())) {
+                    addSpot(whoseMove(), nxt - size());
+                    jumps.push(nxt - size());
+                }
+                if (exists(nxt - 1) && nxt % size() != 0) {
+                    addSpot(whoseMove(), nxt - 1);
+                    jumps.push(nxt - 1);
+                }
+                if (exists(nxt + 1) && (nxt + 1) % size() != 0) {
+                    addSpot(whoseMove(), nxt + 1);
+                    jumps.push(nxt + 1);
+                }
+                if (exists(nxt + size())) {
+                    addSpot(whoseMove(), nxt + size());
+                    jumps.push(nxt + size());
+                }
+            }
+        }
+    }
+
+    /** Total combined number of moves by both sides. */
+    protected int _moves;
+    /** Convenience variable: size of board (squares along one edge). */
+    private int _N;
+    /** keeps track of how many recursive jumps I make. */
+    private int jumping;
+    /** An UndoStack that keeps track of each move and stores them as a
+     *  string to represent the board. */
+    private Stack<String> stack = new Stack<String>();
+    /** A queue to keep track of what squares that still need to be checked. */
+    private ArrayDeque<Integer> jumps = new ArrayDeque<Integer>();
+}

@@ -1,0 +1,11 @@
+# A. A test (test1.in and test1.std) that the 'set' command works.  This
+# test should use 'dump' to check that a certain setup is as expected.
+java -ea jump61.Main
+None
+===#1===
+size 2
+manual blue
+set 1 1 2 r
+dump
+quit
+===#2===

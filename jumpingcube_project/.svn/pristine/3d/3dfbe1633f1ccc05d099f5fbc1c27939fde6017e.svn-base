@@ -1,0 +1,18 @@
+# first instance has automated red and manual blue. Second instance
+# has manual red and automated blue.
+java -ea jump61.Main
+java -ea jump61.Main
+===#1===
+size 2
+auto red
+manual blue
+start
+%ib...
+%e
+quit
+===#2===
+size 2
+start
+%ir...
+%e
+quit

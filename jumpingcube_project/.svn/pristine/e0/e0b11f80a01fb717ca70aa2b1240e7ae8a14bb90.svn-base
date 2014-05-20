@@ -1,0 +1,216 @@
+package jump61;
+
+import java.util.ArrayList;
+import java.util.Collections;
+
+import static jump61.Color.*;
+
+/** An automated Player.
+ *  @author Allen Yu
+ */
+class AI extends Player {
+
+    /** A new player of GAME initially playing COLOR that chooses
+     *  moves automatically.
+     */
+    AI(Game game, Color color) {
+        super(game, color);
+        alpha = Integer.MIN_VALUE;
+        beta = Integer.MAX_VALUE;
+    }
+
+    @Override
+    void makeMove() {
+        Game game = getGame();
+        Board r = getBoard();
+        Board b = new MutableBoard(r);
+        ArrayList<Integer> moves = new ArrayList<Integer>();
+        int depth = 4;
+        int max = minmax(getColor(), b, depth, 0, moves);
+        System.out.println("move: " + moves.get(0) + " value: " + max);
+        reset();
+        game.makeMove(moves.get(0));
+        game.message("%s moves %d %d.%n", getColor(), b.row(moves.get(0)), b.col(moves.get(0)));
+    }
+
+    /** Return the minimum of CUTOFF and the minmax value of board B
+     *  (which must be mutable) for player P to a search depth of D
+     *  (where D == 0 denotes evaluating just the next move).
+     *  If MOVES is not null and CUTOFF is not exceeded, set MOVES to
+     *  a list of all highest-scoring moves for P; clear it if
+     *  non-null and CUTOFF is exceeded. the contents of B are
+     *  invariant over this call. */
+    private int minmax(Color p, Board b, int d, int start, ArrayList<Integer> moves) {
+        if (moves == null) {
+            moves = new ArrayList<Integer>();
+        }
+        if (d <= 0) {
+            return staticEval(p, b);
+        }
+        int value;
+        if (start % 2 == 0) {
+            int maxsofar = Integer.MIN_VALUE;
+            for (int k = 0; k < b.size() * b.size() + 1; k++) {
+                if (b.isLegal(p, k)) {
+                    b.addSpot(p, k);
+                    if (b.getWinner() != null
+                            && Color.parseColor(b.getWinner()) == p) {
+                        value = Integer.MAX_VALUE;
+                    } else {
+                        value = minmax(p.opposite(), b, d - 1, start + 1, null);
+                        if(start == 0) {
+                            System.out.println("values: " + value);
+                        }
+                    }
+                    b.undo();
+                    if (value > alpha) {
+                        alpha = value;
+                    }
+                    if (value >= maxsofar) {
+                        moves.clear();
+                        maxsofar = value;
+                        moves.add(k);
+                    }
+                    if (alpha >= beta) {
+                        if (start != 0) {
+                            moves.clear();
+                        }
+                        if (maxsofar < beta) {
+                            beta = maxsofar;
+                        }
+                        alpha = Integer.MIN_VALUE;
+                        return value;
+                    }
+                }
+            }
+            if (maxsofar < beta) {
+                beta = maxsofar;
+            }
+            alpha = Integer.MIN_VALUE;
+            return maxsofar;
+        } else if (start % 2 == 1) {
+            int minsofar = Integer.MAX_VALUE;
+            for (int j = 0; j < b.size() * b.size() + 1; j++) {
+                if (b.isLegal(p, j)) {
+                    b.addSpot(p, j);
+                    if (b.getWinner() != null
+                            && Color.parseColor(b.getWinner()) == p) {
+                        value = Integer.MIN_VALUE;
+                    } else {
+                        value = minmax(p.opposite(), b, d - 1, start + 1, null);
+                    }
+                    b.undo();
+                    if (value < beta) {
+                        beta = value;
+                    }
+                    if (value <= minsofar) {
+                        moves.clear();
+                        minsofar = value;
+                        moves.add(j);
+                    }
+                    if (alpha >= beta) {
+                        if (start != 0) {
+                            moves.clear();
+                        }
+                        if (minsofar > alpha) {
+                            alpha = minsofar;
+                        }
+                        beta = Integer.MAX_VALUE;
+                        return value;
+                    }
+                }
+            }
+            if (minsofar > alpha) {
+                alpha = minsofar;
+            }
+            beta = Integer.MAX_VALUE;
+            return minsofar;
+        }
+        return -1;
+    }
+
+    /** Reset the values for alpha and beta. */
+    private void reset() {
+        alpha = Integer.MIN_VALUE;
+        beta = Integer.MAX_VALUE;
+    }
+
+    /** Returns heuristic value of board B for player P.
+     *  Higher is better for P. */
+    private int staticEval(Color p, Board b) {
+        int value = 0;
+        value += b.numOfColor(p) - b.numOfColor(p.opposite());
+        return value;
+    }
+
+    /** Determines the heuristic value of board B for player P
+     * for when the board still has empty squares. */
+    private void lessNeighbors(Color p, Board b, int value) {
+        int[] corners = findCorners(b);
+        for (int x: corners) {
+            if (b.getSquare(x).color() == getColor()) {
+                value += 10;
+            } else if (b.getSquare(x).color() == getColor().opposite()) {
+                value -= 25;
+            } else if (b.getSquare(x).color() == WHITE) {
+                value -= 10;
+            }
+        }
+    }
+
+    /** Finds all the corners of the given board. */
+    private int[] findCorners(Board b) {
+        int[] corners = new int[4];
+        corners[0] = 0;
+        corners[1] = b.size() - 1;
+        corners[2] = b.size() * b.size() - b.size();
+        corners[3] = b.size() * b.size() - 1;
+        return corners;
+    }
+
+    /** Finds all the sides of the given board. */
+    private int[] findSides(Board b) {
+        int numSides;
+        if (b.size() == 2) {
+            numSides = 0;
+        } else {
+            numSides = (int) Math.pow(2.0, b.size() - 1);
+        }
+        int iter = 0;
+        int [] sides = new int[numSides];
+        for (int i = 0; i < b.size(); i++) {
+            for (int k = 0; k < b.size(); k++) {
+                if (b.neighbors(i, k) == 3) {
+                    sides[iter] = b.sqNum(i, k);
+                }
+            }
+        }
+        return sides;
+    }
+
+    /** Determines if this current place is a corner. */
+    private boolean corner(int pos) {
+        return _board.neighbors(pos) == 2;
+    }
+
+    /** Determines if this current place is a side. */
+    private boolean side(int pos) {
+        return _board.neighbors(pos) == 3;
+    }
+
+    /** Determines if this current place has 4 neighbors. */
+    private boolean reg(int pos) {
+        return _board.neighbors(pos) == 4;
+    }
+
+    /** The board of this game. */
+    private Board _board;
+
+    /** The alpha value of the minmax tree. */
+    private int alpha;
+
+    /** The beta value of the minmax tree. */
+    private int beta;
+
+}
+

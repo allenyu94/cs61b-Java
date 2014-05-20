@@ -1,0 +1,43 @@
+package graph;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/** A vertex in a graph.
+ *  @author Allen Yu
+ */
+public class Vertex<VLabel> {
+
+    /** A new vertex with LABEL as the value of getLabel(). */
+    protected Vertex(VLabel label) {
+        _label = label;
+        pointers = new ArrayList<ArrayList<VLabel>>(2);
+    }
+
+    /** Returns the label on this vertex. */
+    public VLabel getLabel() {
+        return _label;
+    }
+
+    /** Adds a pointer to my child node. */
+    public void addChild(Vertex<VLabel> child) {
+        pointers.get(0).add(child.getLabel());
+    }
+
+    /** Adds a pointer to my parent node. */
+    public void addParent(Vertex<VLabel> parent) {
+        pointers.get(1).add(parent.getLabel());
+    }
+
+    @Override
+    public String toString() {
+        return String.valueOf(_label);
+    }
+
+    /** The label on this vertex. */
+    private final VLabel _label;
+    /** An Arraylist containing the node labels this vertex points
+     *  to at index 0 and the parents of this vertex at index
+     *  1. */
+    private List<ArrayList<VLabel>> pointers;
+}

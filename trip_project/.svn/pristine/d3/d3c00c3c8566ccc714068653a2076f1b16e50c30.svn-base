@@ -1,0 +1,31 @@
+package trip;
+
+/* You MAY add public @Test methods to this class.  You may also add
+ * additional public classes containing "Testing" in their name. These
+ * may not be part of your trip package per se (that is, it must be
+ * possible to remove them and still have your package work). */
+
+import org.junit.Test;
+import graph.Distancer;
+import ucb.junit.textui;
+import static org.junit.Assert.*;
+
+/** Unit tests for the trip package. */
+public class Testing {
+
+    /** Run all JUnit tests in the graph package. */
+    public static void main(String[] ignored) {
+        System.exit(textui.runClasses(trip.Testing.class));
+    }
+
+    /** Tests the heuristic distancer for coordinates. */
+    @Test
+    public void testHeurDistancer() {
+        Distancer<Location> dis = new StraightLineHeur();
+        Location berk = new Location("Berkeley",
+                Double.MAX_VALUE, 37.87, 122.27);
+        Location la = new Location("Los Angeles",
+                Double.MAX_VALUE, 34.05, 118.25);
+        assert (dis.dist(berk, la) > 5.5 && dis.dist(berk, la) < 5.6);
+    }
+}

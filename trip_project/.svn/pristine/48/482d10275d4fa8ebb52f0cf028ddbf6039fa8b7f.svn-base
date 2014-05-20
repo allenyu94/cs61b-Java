@@ -1,0 +1,217 @@
+package graph;
+
+import static org.junit.Assert.*;
+
+import java.util.List;
+
+import org.junit.Test;
+
+public class GraphsTest {
+
+    @Test
+    public void testPathing() {
+        DirectedGraph<Label, Label> G = new DirectedGraph<Label, Label>();
+        Graph<Label, Label> g = G;
+        Graph<Label, Label>.Vertex v1 = G.add(new Label("vertex 1"));
+        Graph<Label, Label>.Vertex v2 = G.add(new Label("vertex 2"));
+        Graph<Label, Label>.Vertex v3 = G.add(new Label("vertex 3"));
+        Graph<Label, Label>.Vertex v4 = G.add(new Label("vertex 4"));
+
+        Graph<Label, Label>.Edge e1 = G.add(v1, v2, new Label("edge 1"));
+        Graph<Label, Label>.Edge e2 = G.add(v1, v3, new Label("edge 2"));
+        Graph<Label, Label>.Edge e3 = G.add(v2, v4, new Label("edge 3"));
+        Graph<Label, Label>.Edge e4 = G.add(v3, v4, new Label("edge 4"));
+
+        Weighter<Label> vweighter = new Vweighter();
+        Weighter<Label> eweighter = new Eweighter();
+        Weighting<Label> eweight = eweighter;
+        Distancer<Label> h = new HDistancer();
+
+        eweighter.setWeight(e1.getLabel(), 3);
+        eweighter.setWeight(e2.getLabel(), 1);
+        eweighter.setWeight(e3.getLabel(), 10);
+        eweighter.setWeight(e4.getLabel(), 1);
+
+        List<Graph<Label, Label>.Edge> path = Graphs.shortestPath(g, v1, v4, h, vweighter, eweight);
+        assertEquals("took the wrong first path", path.get(0).getLabel().getName(), "edge 2");
+        assertEquals("took the wrong second path", path.get(1).getLabel().getName(), "edge 4");
+        
+    }
+
+    @Test
+    public void testPathing2() {
+        DirectedGraph<Label, Label> G = new DirectedGraph<Label, Label>();
+        Graph<Label, Label> g = G;
+        Graph<Label, Label>.Vertex v1 = G.add(new Label("vertex 1"));
+        Graph<Label, Label>.Vertex v2 = G.add(new Label("vertex 2"));
+        Graph<Label, Label>.Vertex v3 = G.add(new Label("vertex 3"));
+        Graph<Label, Label>.Vertex v4 = G.add(new Label("vertex 4"));
+
+        Graph<Label, Label>.Edge e1 = G.add(v1, v2, new Label("edge 1"));
+        Graph<Label, Label>.Edge e2 = G.add(v1, v3, new Label("edge 2"));
+        Graph<Label, Label>.Edge e3 = G.add(v2, v4, new Label("edge 3"));
+        Graph<Label, Label>.Edge e4 = G.add(v3, v4, new Label("edge 4"));
+        Graph<Label, Label>.Edge e5 = G.add(v2, v3, new Label("edge 5"));
+
+        Weighter<Label> vweighter = new Vweighter();
+        Weighter<Label> eweighter = new Eweighter();
+        Weighting<Label> eweight = eweighter;
+        Distancer<Label> h = new HDistancer();
+
+        eweighter.setWeight(e1.getLabel(), 1);
+        eweighter.setWeight(e2.getLabel(), 10);
+        eweighter.setWeight(e3.getLabel(), 10);
+        eweighter.setWeight(e4.getLabel(), 1);
+        eweighter.setWeight(e5.getLabel(), 1);
+
+        List<Graph<Label, Label>.Edge> path = Graphs.shortestPath(g, v1, v4, h, vweighter, eweight);
+        assertEquals("took the wrong first path", path.get(0).getLabel().getName(), "edge 1");
+        assertEquals("took the wrong second path", path.get(1).getLabel().getName(), "edge 5");
+        assertEquals("took the wrong second path", path.get(2).getLabel().getName(), "edge 4");
+        
+    }
+
+    @Test
+    public void testPathing3() {
+        DirectedGraph<Label, Label> G = new DirectedGraph<Label, Label>();
+        Graph<Label, Label> g = G;
+        Graph<Label, Label>.Vertex v1 = G.add(new Label("vertex 1"));
+        Graph<Label, Label>.Vertex v2 = G.add(new Label("vertex 2"));
+        Graph<Label, Label>.Vertex v3 = G.add(new Label("vertex 3"));
+        Graph<Label, Label>.Vertex v4 = G.add(new Label("vertex 4"));
+
+        Graph<Label, Label>.Edge e1 = G.add(v1, v2, new Label("edge 1"));
+        Graph<Label, Label>.Edge e2 = G.add(v1, v3, new Label("edge 2"));
+        Graph<Label, Label>.Edge e3 = G.add(v2, v4, new Label("edge 3"));
+        Graph<Label, Label>.Edge e4 = G.add(v3, v4, new Label("edge 4"));
+
+        Weighter<Label> vweighter = new Vweighter();
+        Weighter<Label> eweighter = new Eweighter();
+        Weighting<Label> eweight = eweighter;
+        Distancer<Label> h = new V2Distancer();
+
+        eweighter.setWeight(e1.getLabel(), 5);
+        eweighter.setWeight(e2.getLabel(), 1);
+        eweighter.setWeight(e3.getLabel(), 5);
+        eweighter.setWeight(e4.getLabel(), 1);
+
+        List<Graph<Label, Label>.Edge> path = Graphs.shortestPath(g, v1, v2, h, vweighter, eweight);
+        assertEquals("took the wrong first path", path.get(0).getLabel().getName(), "edge 1");
+        
+    }
+
+    @Test
+    public void noPathTest() {
+        DirectedGraph<Label, Label> G = new DirectedGraph<Label, Label>();
+        Graph<Label, Label> g = G;
+        Graph<Label, Label>.Vertex v1 = G.add(new Label("vertex 1"));
+        Graph<Label, Label>.Vertex v2 = G.add(new Label("vertex 2"));
+        Graph<Label, Label>.Vertex v3 = G.add(new Label("vertex 3"));
+        Graph<Label, Label>.Vertex v4 = G.add(new Label("vertex 4"));
+
+        Graph<Label, Label>.Edge e1 = G.add(v1, v2, new Label("edge 1"));
+        Graph<Label, Label>.Edge e2 = G.add(v1, v3, new Label("edge 2"));
+        Graph<Label, Label>.Edge e3 = G.add(v2, v3, new Label("edge 3"));
+
+        Weighter<Label> vweighter = new Vweighter();
+        Weighter<Label> eweighter = new Eweighter();
+        Weighting<Label> eweight = eweighter;
+        Distancer<Label> h = new V2Distancer();
+
+        eweighter.setWeight(e1.getLabel(), 5);
+        eweighter.setWeight(e2.getLabel(), 4);
+        eweighter.setWeight(e3.getLabel(), 1);
+
+        List<Graph<Label, Label>.Edge> path = Graphs.shortestPath(g, v1, v4, h, vweighter, eweight);
+        assertEquals("path is not null", path, null);
+        
+    }
+
+    private class Vweighter implements Weighter<Label>{
+
+        public Vweighter() {
+        }
+
+        public void setWeight(Label v, double x) {
+            v.setWeight(x);
+        }
+
+        public double weight(Label v) {
+            return v.getWeight();
+        }
+
+    }
+
+    private class Eweighter implements Weighter<Label> {
+
+        public Eweighter() {
+        }
+
+        public void setWeight(Label e, double x) {
+            e.setWeight(x);
+        }
+
+        public double weight(Label e) {
+            return e.getWeight();
+        }
+
+    }
+
+    private class HDistancer implements Distancer<Label> {
+
+        public HDistancer() {
+        }
+
+        public double dist(Label v0, Label v1) {
+            return 0;
+        }
+
+    }
+
+    private class V2Distancer implements Distancer<Label> {
+
+        public V2Distancer() {
+        }
+
+        public double dist(Label v0, Label v1) {
+            if (v0.getName().equals("vertex 2")) {
+                return 0;
+            } else if (v0.getName().equals("vertex 1")
+                    || v0.getName().equals("vertex 4")) {
+                return 5;
+            } else {
+                return 10;
+            }
+        }
+    }
+
+    private class Label {
+
+        public Label(String x) {
+            name = x;
+            weight = 0;
+        }
+
+        /** Sets the weight to VAL. */
+        public void setWeight(double val) {
+            weight = val;
+        }
+
+        /** Returns the weight of this label. */
+        public double getWeight() {
+            return weight;
+        }
+
+        /** Returns the name of this label. */
+        public String getName() {
+            return name;
+        }
+
+        /** stores the name of this label. */
+        private String name;
+        /** stores the weight of this item. */
+        private double weight;
+
+    }
+
+}

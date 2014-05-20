@@ -1,0 +1,280 @@
+package make;
+
+import static org.junit.Assert.*;
+import graph.DirectedGraph;
+import graph.Graph;
+import graph.Traversal;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+
+import org.junit.Test;
+
+public class MainTest {
+
+    @Test
+    public void testMakeGraph() {
+        HashMap<String, ArrayList<String>> header =
+                new HashMap<String, ArrayList<String>>();
+        ArrayList<String> targets = new ArrayList<String>();
+        ArrayList<String> preD = new ArrayList<String>();
+        preD.add("E");
+        preD.add("C");
+        preD.add("F");
+        header.put("D", preD);
+        ArrayList<String> preC = new ArrayList<String>();
+        preC.add("B");
+        preC.add("A");
+        header.put("C", preC);
+        ArrayList<String> preE = new ArrayList<String>();
+        preE.add("B");
+        header.put("E", preE);
+        ArrayList<String> preF = new ArrayList<String>();
+        preF.add("A");
+        header.put("F", preF);
+        ArrayList<String> preB = new ArrayList<String>();
+        header.put("B", preB);
+        ArrayList<String> preA = new ArrayList<String>();
+        header.put("A", preA);
+        targets.add("A");
+        targets.add("B");
+        targets.add("C");
+        targets.add("D");
+        targets.add("E");
+        targets.add("F");
+        DirectedGraph<String, String> G = new DirectedGraph<String, String>();
+        HashMap<String, Graph<String, String>.Vertex> vertices =
+                initGraph(G, targets);
+        BuildMakeGraph B = new BuildMakeGraph(vertices, header, targets);
+        for (int i = 0; i < targets.size(); i++) {
+            B.depthFirstTraverse(G, vertices.get(targets.get(i)));
+        }
+        assertEquals("wrong number of vertices in graph", G.vertexSize(), 6);
+        assertEquals("wrong number of edges in graph", G.edgeSize(), 7);
+    }
+
+    @Test
+    public void testNoSuchTarget() {
+        HashMap<String, ArrayList<String>> header =
+                new HashMap<String, ArrayList<String>>();
+        ArrayList<String> targets = new ArrayList<String>();
+        ArrayList<String> preC = new ArrayList<String>();
+        preC.add("D");
+        header.put("C", preC);
+        ArrayList<String> preB = new ArrayList<String>();
+        header.put("B", preB);
+        ArrayList<String> preA = new ArrayList<String>();
+        preA.add("B");
+        header.put("A", preA);
+        targets.add("A");
+        targets.add("B");
+        targets.add("C");
+        DirectedGraph<String, String> G = new DirectedGraph<String, String>();
+        HashMap<String, Graph<String, String>.Vertex> vertices =
+                initGraph(G, targets);
+        BuildMakeGraph B = new BuildMakeGraph(vertices, header, targets);
+        for (int i = 0; i < targets.size(); i++) {
+            B.depthFirstTraverse(G, vertices.get(targets.get(i)));
+        }
+        assertEquals("expected bad exit", B.getExit(), true);
+    }
+
+    @Test
+    public void testNoSuchTarget2() {
+        HashMap<String, ArrayList<String>> header =
+                new HashMap<String, ArrayList<String>>();
+        ArrayList<String> targets = new ArrayList<String>();
+        ArrayList<String> preC = new ArrayList<String>();
+        preC.add("D");
+        header.put("C", preC);
+        ArrayList<String> preB = new ArrayList<String>();
+        preB.add("C");
+        header.put("B", preB);
+        ArrayList<String> preA = new ArrayList<String>();
+        preA.add("B");
+        header.put("A", preA);
+        targets.add("A");
+        targets.add("B");
+        targets.add("C");
+        DirectedGraph<String, String> G = new DirectedGraph<String, String>();
+        HashMap<String, Graph<String, String>.Vertex> vertices =
+                initGraph(G, targets);
+        BuildMakeGraph B = new BuildMakeGraph(vertices, header, targets);
+        for (int i = 0; i < targets.size(); i++) {
+            B.depthFirstTraverse(G, vertices.get(targets.get(i)));
+        }
+        assertEquals("expected bad exit", B.getExit(), true);
+    }
+
+    @Test
+    public void testCircularDependency() {
+        HashMap<String, ArrayList<String>> header =
+                new HashMap<String, ArrayList<String>>();
+        ArrayList<String> targets = new ArrayList<String>();
+        ArrayList<String> preC = new ArrayList<String>();
+        preC.add("A");
+        header.put("C", preC);
+        ArrayList<String> preB = new ArrayList<String>();
+        preB.add("C");
+        header.put("B", preB);
+        ArrayList<String> preA = new ArrayList<String>();
+        preA.add("B");
+        header.put("A", preA);
+        targets.add("A");
+        targets.add("B");
+        targets.add("C");
+        DirectedGraph<String, String> G = new DirectedGraph<String, String>();
+        HashMap<String, Graph<String, String>.Vertex> vertices =
+                initGraph(G, targets);
+        BuildMakeGraph B = new BuildMakeGraph(vertices, header, targets);
+        for (int i = 0; i < targets.size(); i++) {
+            B.depthFirstTraverse(G, vertices.get(targets.get(i)));
+        }
+        assertEquals("expected bad exit", B.getExit(), true);
+    }
+
+    @Test
+    public void testCircularDependency2() {
+        HashMap<String, ArrayList<String>> header =
+                new HashMap<String, ArrayList<String>>();
+        ArrayList<String> targets = new ArrayList<String>();
+        ArrayList<String> preB = new ArrayList<String>();
+        preB.add("A");
+        header.put("B", preB);
+        ArrayList<String> preA = new ArrayList<String>();
+        preA.add("B");
+        header.put("A", preA);
+        targets.add("A");
+        targets.add("B");
+        DirectedGraph<String, String> G = new DirectedGraph<String, String>();
+        HashMap<String, Graph<String, String>.Vertex> vertices =
+                initGraph(G, targets);
+        BuildMakeGraph B = new BuildMakeGraph(vertices, header, targets);
+        for (int i = 0; i < targets.size(); i++) {
+            B.depthFirstTraverse(G, vertices.get(targets.get(i)));
+        }
+        assertEquals("expected bad exit", B.getExit(), true);
+    }
+
+    @Test
+    public void testCircularDependency3() {
+        HashMap<String, ArrayList<String>> header =
+                new HashMap<String, ArrayList<String>>();
+        ArrayList<String> targets = new ArrayList<String>();
+        ArrayList<String> preD = new ArrayList<String>();
+        preD.add("E");
+        preD.add("C");
+        preD.add("F");
+        header.put("D", preD);
+        ArrayList<String> preC = new ArrayList<String>();
+        preC.add("B");
+        preC.add("A");
+        header.put("C", preC);
+        ArrayList<String> preE = new ArrayList<String>();
+        preE.add("B");
+        header.put("E", preE);
+        ArrayList<String> preF = new ArrayList<String>();
+        preF.add("A");
+        header.put("F", preF);
+        ArrayList<String> preB = new ArrayList<String>();
+        header.put("B", preB);
+        ArrayList<String> preA = new ArrayList<String>();
+        preA.add("D");
+        header.put("A", preA);
+        targets.add("B");
+        targets.add("C");
+        targets.add("D");
+        targets.add("E");
+        targets.add("F");
+        targets.add("A");
+        DirectedGraph<String, String> G = new DirectedGraph<String, String>();
+        HashMap<String, Graph<String, String>.Vertex> vertices =
+                initGraph(G, targets);
+        BuildMakeGraph B = new BuildMakeGraph(vertices, header, targets);
+        for (int i = 0; i < targets.size(); i++) {
+            B.depthFirstTraverse(G, vertices.get(targets.get(i)));
+        }
+        assertEquals("expected bad exit", B.getExit(), true);
+    }
+
+    /** Returns the HashMap of all strings of given TARGETS to their vertices
+     *  of the GRAPH. */
+    private static HashMap<String, Graph<String, String>.Vertex> initGraph(
+                   Graph<String, String> graph, ArrayList<String> targets) {
+        HashMap<String, Graph<String, String>.Vertex> vertices =
+                new HashMap<String, Graph<String, String>.Vertex>();
+        for (String x: targets) {
+            vertices.put(x, graph.add(x));
+        }
+        return vertices;
+    }
+
+    /** Reads this one rule from the list of headers and creates a dependecny
+     *  graph. */
+    private static class BuildMakeGraph extends Traversal<String, String> {
+
+        public BuildMakeGraph(HashMap<String,
+                Graph<String, String>.Vertex> vertices,
+                HashMap<String, ArrayList<String>> headers,
+                ArrayList<String> t) {
+            makeMap = vertices;
+            preReq = headers;
+            targets = t;
+            circle = new HashSet<String>();
+            done = new HashSet<String>();
+            badExit = false;
+        }
+
+        public void preVisit(Graph<String, String>.Edge e,
+                Graph<String, String>.Vertex v) {
+            if (!done.contains(e.getV(v).getLabel())) {
+                if (!targets.contains(e.getV(v).getLabel())) {
+                    badExit = true;
+                    return;
+                }
+            }
+        }
+
+        public void visit(Graph<String, String>.Vertex v) {
+            if (!done.contains(v.getLabel())) {
+                circle.add(v.getLabel());
+                for (String x : preReq.get(v.getLabel())) {
+                    Graph<String, String>.Vertex v1 = makeMap.get(x);
+                    if (v1 == null) {
+                        badExit = true;
+                        return;
+                    } else if (circle.contains(x)) {
+                        badExit = true;
+                    }
+                    _graph.add(v, v1, v.getLabel() + " to " + v1.getLabel());
+                }
+            }
+        }
+
+        public void postVisit(Graph<String, String>.Vertex v) {
+            if (!done.contains(v.getLabel())) {
+                done.add(v.getLabel());
+                circle.remove(v.getLabel());
+            }
+        }
+
+        /** Returns the badExit. */
+        public boolean getExit() {
+            return badExit;
+        }
+
+        /** The map that associates vertices' names to the vertex. */
+        private HashMap<String, Graph<String, String>.Vertex> makeMap;
+        /** The map that associates the target and its preReq. */
+        private HashMap<String, ArrayList<String>> preReq;
+        /** The Set that contains all my targets. */
+        private ArrayList<String> targets;
+        /** The set that determines if this target is already post visited. */
+        private HashSet<String> done;
+        /** The set that checks if there is a circular dependency. */
+        private HashSet<String> circle;
+        /** True if there is a bad exit. */
+        private boolean badExit;
+    }
+}

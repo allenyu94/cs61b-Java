@@ -1,0 +1,41 @@
+package graph;
+
+import static org.junit.Assert.*;
+
+import org.junit.Test;
+
+public class GraphsTest {
+
+    @Test
+    public void test() {
+        DirectedGraph<String, String> G = new DirectedGraph<String, String>();
+        G.add(G.add("vertex 1"), G.add("vertex 2"), "edge 1");
+        G.add(G.getVertex("vertex 2"), G.add("vertex 3"), "edge 2");
+        G.add(G.getVertex("vertex 3"), G.getVertex("vertex 1"), "edge 3");
+
+        Weighter<String> eweighter = new Weighter<String>();
+    }
+
+    private class Vweighter implements Weighter<Graph<Double, Double>.Vertex>{
+
+        public Vweighter() {
+            
+        }
+
+        public void setWeight(Graph<String, Double>.Vertex v, Double x) {
+            
+        }
+
+        public void setWeight(Double x) {
+            _weight = x;
+        }
+
+        public Double weight() {
+            return _weight;
+        }
+
+        /** this stores my current weight. */
+        private Double _weight;
+    }
+
+}

@@ -1,0 +1,22 @@
+package trip;
+
+/** The Location class.
+ *  @author AllenYu
+ */
+public class Location {
+
+    /** The constructor for a Location. Takes in a location
+     *  NAME, X coordinate, and Y coordinate. */
+    public Location(String name, float x, float y) {
+        _name = name;
+        _x = x;
+        _y = y;
+    }
+
+    /** The name of this Location. */
+    private String _name;
+    /** The x coordinate of this Location. */
+    private float _x;
+    /** The y coordinate of this Location. */
+    private float _y;
+}

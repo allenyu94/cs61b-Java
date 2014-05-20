@@ -1,0 +1,31 @@
+package trip;
+
+/** The Distance class.
+ *  @author AllenYu
+ */
+public class Distance {
+
+    /** The constructor for Distance class. Takes in the PLACE,
+     *  name of the ROAD, DISTANCE, and DIRECTION of the road. With
+     *  START place and END place. */
+    public Distance(String start, String road,
+            float distance, String direction, String end) {
+        _start = start;
+        _road = road;
+        _distance = distance;
+        _direction = direction;
+        _end = end;
+    }
+
+    /** The name of the starting place. */
+    private String _start;
+    /** The name of the road. */
+    private String _road;
+    /** The distance of the road. */
+    private float _distance;
+    /** The direction the road is traveling. */
+    private String _direction;
+    /** The name of the ending place. */
+    private String _end;
+
+}

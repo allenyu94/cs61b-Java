@@ -1,0 +1,399 @@
+package graph;
+
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.TreeSet;
+import java.util.Stack;
+
+/** Implements a generalized traversal of a graph.  At any given time,
+ *  there is a particular set of untraversed vertices---the "fringe."
+ *  Traversal consists of repeatedly removing an untraversed vertex
+ *  from the fringe, visting it, and then adding its untraversed
+ *  successors to the fringe.  The client can dictate an ordering on
+ *  the fringe, determining which item is next removed, by which kind
+ *  of traversal is requested.
+ *     + A depth-first traversal treats the fringe as a list, and adds
+ *       and removes vertices at one end.  It also revisits the node
+ *       itself after traversing all successors by calling the
+ *       postVisit method on it.
+ *     + A breadth-first traversal treats the fringe as a list, and adds
+ *       and removes vertices at different ends.  It also revisits the node
+ *       itself after traversing all successors as for depth-first
+ *       traversals.
+ *     + A general traversal treats the fringe as an ordered set, as
+ *       determined by a Comparator argument.  There is no postVisit
+ *       for this type of traversal.
+ *  As vertices are added to the fringe, the traversal calls a
+ *  preVisit method on the vertex.
+ *
+ *  Generally, the client will extend Traversal, overriding the visit,
+ *  preVisit, and postVisit methods, as desired (by default, they do nothing).
+ *  Any of these methods may throw StopException to halt the traversal
+ *  (temporarily, if desired).  The preVisit method may throw a
+ *  RejectException to prevent a vertex from being added to the
+ *  fringe, and the visit method may throw a RejectException to
+ *  prevent its successors from being added to the fringe.
+ *  @author Allen Yu
+ */
+public class Traversal<VLabel, ELabel> {
+
+    /** Perform a traversal of G over all vertices reachable from V.
+     *  ORDER determines the ordering in which the fringe of
+     *  untraversed vertices is visited. */
+    public void traverse(Graph<VLabel, ELabel> G,
+                         Graph<VLabel, ELabel>.Vertex v,
+                         Comparator<VLabel> order) {
+        currTraversal = 0;
+        stored = order;
+        TreeSet<Graph<VLabel, ELabel>.Vertex> fringe =
+                new TreeSet<Graph<VLabel, ELabel>.Vertex>(getComp(order));
+        marked = new HashSet<Graph<VLabel, ELabel>.Vertex>();
+        _finalVertex = null;
+        _finalEdge = null;
+        try {
+            if (marked.contains(v)) {
+                return;
+            }
+            marked.add(v);
+            try {
+                _finalVertex = v;
+                visit(v);
+                _finalVertex = null;
+            } catch (RejectException e) {
+                return;
+            }
+            look(G, v, fringe);
+            while (!fringe.isEmpty()) {
+                Graph<VLabel, ELabel>.Vertex curr = fringe.pollFirst();
+                if (marked.contains(curr)) {
+                    continue;
+                }
+                marked.add(curr);
+                try {
+                    _finalVertex = curr;
+                    visit(curr);
+                    _finalVertex = null;
+                } catch (RejectException e) {
+                    continue;
+                }
+                look(G, curr, fringe);
+            }
+        } catch (StopException e) {
+            return;
+        }
+    }
+
+    /** Returns the comparator for Vertex rather than VLabels for a given
+     *  VLabel comparator COMP. */
+    private Comparator<Graph<VLabel, ELabel>.Vertex>
+    getComp(final Comparator<VLabel> comp) {
+        Comparator<Graph<VLabel, ELabel>.Vertex> newComp =
+                new Comparator<Graph<VLabel, ELabel>.Vertex>() {
+                @Override
+                public int compare(Graph<VLabel, ELabel>.Vertex v1,
+                    Graph<VLabel, ELabel>.Vertex v2) {
+                    if (comp.compare(v1.getLabel(), v2.getLabel()) != 0) {
+                        return comp.compare(v1.getLabel(), v2.getLabel());
+                    } else {
+                        return 1;
+                    }
+                }
+            };
+        return newComp;
+    }
+
+    /** This method helps the traverse method look at the current
+     *  vertex V and its children vertices in graph G updating FRINGE. */
+    private void look(Graph<VLabel, ELabel> G,
+                        Graph<VLabel, ELabel>.Vertex v,
+                        TreeSet<Graph<VLabel, ELabel>.Vertex> fringe) {
+        Iteration<Graph<VLabel, ELabel>.Edge> myEdges = G.outEdges(v);
+        while (myEdges.hasNext()) {
+            Graph<VLabel, ELabel>.Edge currEdge = myEdges.next();
+            Graph<VLabel, ELabel>.Vertex currVtx = currEdge.getV1();
+            if (marked.contains(currVtx)) {
+                continue;
+            }
+            try {
+                _finalVertex = currVtx;
+                _finalEdge = currEdge;
+                preVisit(currEdge, currEdge.getV0());
+                _finalVertex = null;
+                _finalEdge = null;
+                if (!marked.contains(currVtx)) {
+                    fringe.add(currVtx);
+                }
+            } catch (RejectException e) {
+                continue;
+            }
+        }
+    }
+
+    /** Performs a depth-first traversal of G over all vertices
+     *  reachable from V.  That is, the fringe is a sequence and
+     *  vertices are added to it or removed from it at one end in
+     *  an undefined order.  After the traversal of all successors of
+     *  a node is complete, the node itself is revisited by calling
+     *  the postVisit method on it. */
+    public void depthFirstTraverse(Graph<VLabel, ELabel> G,
+                                   Graph<VLabel, ELabel>.Vertex v) {
+        currTraversal = 1;
+        _graph = G;
+        Stack<Graph<VLabel, ELabel>.Vertex> fringe =
+                new Stack<Graph<VLabel, ELabel>.Vertex>();
+        marked = new HashSet<Graph<VLabel, ELabel>.Vertex>();
+        _finalVertex = null;
+        _finalEdge = null;
+        fringe.clear();
+        fringe.add(v);
+        rdepth(G, fringe);
+    }
+
+    /** This method helps the depth first traverse method look at the current
+     *  vertex V and its children vertices in graph G updating FRINGE. */
+    private void depthLook(Graph<VLabel, ELabel> G,
+                        Graph<VLabel, ELabel>.Vertex v,
+                        Stack<Graph<VLabel, ELabel>.Vertex> fringe) {
+        Iteration<Graph<VLabel, ELabel>.Edge> myEdges = G.outEdges(v);
+        while (myEdges.hasNext()) {
+            Graph<VLabel, ELabel>.Edge currEdge = myEdges.next();
+            Graph<VLabel, ELabel>.Vertex currVtx = currEdge.getV1();
+            if (marked.contains(currVtx)) {
+                continue;
+            }
+            try {
+                _finalVertex = currVtx;
+                _finalEdge = currEdge;
+                preVisit(currEdge, currEdge.getV0());
+                _finalVertex = null;
+                _finalEdge = null;
+                if (!marked.contains(currVtx)) {
+                    fringe.add(currVtx);
+                }
+            } catch (RejectException e) {
+                continue;
+            }
+        }
+    }
+
+    /** This method helps depth first traverse do its recursive call down
+     *  the current vertex taken from FRINGE on graph G. */
+    private void rdepth(Graph<VLabel, ELabel> G,
+            Stack<Graph<VLabel, ELabel>.Vertex> fringe) {
+        if (fringe.isEmpty()) {
+            return;
+        }
+        Graph<VLabel, ELabel>.Vertex curr = fringe.pop();
+        try {
+            if (marked.contains(curr)) {
+                return;
+            }
+            marked.add(curr);
+            try {
+                _finalVertex = curr;
+                visit(curr);
+                _finalVertex = null;
+            } catch (RejectException e) {
+                return;
+            }
+            depthLook(G, curr, fringe);
+            Iteration<Graph<VLabel, ELabel>.Edge> myEdges = G.outEdges(curr);
+            while (myEdges.hasNext()) {
+                myEdges.next();
+                rdepth(G, fringe);
+            }
+        } catch (StopException e) {
+            return;
+        }
+        try {
+            _finalVertex = curr;
+            postVisit(curr);
+            _finalVertex = null;
+        } catch (RejectException e) {
+            return;
+        }
+    }
+
+    /** Performs a breadth-first traversal of G over all vertices
+     *  reachable from V.  That is, the fringe is a sequence and
+     *  vertices are added to it at one end and removed from it at the
+     *  other in an undefined order.  After the traversal of all successors of
+     *  a node is complete, the node itself is revisited by calling
+     *  the postVisit method on it. */
+    public void breadthFirstTraverse(Graph<VLabel, ELabel> G,
+                                     Graph<VLabel, ELabel>.Vertex v) {
+        currTraversal = 2;
+        LinkedList<Graph<VLabel, ELabel>.Vertex> fringe =
+                new LinkedList<Graph<VLabel, ELabel>.Vertex>();
+        marked = new HashSet<Graph<VLabel, ELabel>.Vertex>();
+        Stack<Graph<VLabel, ELabel>.Vertex> postList =
+                new Stack<Graph<VLabel, ELabel>.Vertex>();
+        _finalVertex = null;
+        _finalEdge = null;
+        fringe.addLast(v);
+        try {
+            if (marked.contains(v)) {
+                return;
+            }
+            marked.add(v);
+            postList.add(v);
+            try {
+                _finalVertex = v;
+                visit(v);
+                _finalVertex = null;
+            } catch (RejectException e) {
+                return;
+            }
+            breadthLook(G, v, fringe, postList);
+            breadthIter(G, fringe, postList);
+            while (!postList.isEmpty()) {
+                Graph<VLabel, ELabel>.Vertex lstVtx = postList.pop();
+                try {
+                    _finalVertex = lstVtx;
+                    postVisit(lstVtx);
+                    _finalVertex = null;
+                } catch (RejectException e) {
+                    return;
+                }
+            }
+        } catch (StopException e) {
+            return;
+        }
+    }
+
+    /** This method helps the breadth first traverse method look at the current
+     *  vertex V and its children vertices in graph G updating FRINGE. Updates
+     *  POSTLIST to determine order of post visits. */
+    private void breadthLook(Graph<VLabel, ELabel> G,
+                        Graph<VLabel, ELabel>.Vertex v,
+                        LinkedList<Graph<VLabel, ELabel>.Vertex> fringe,
+                        Stack<Graph<VLabel, ELabel>.Vertex> postList) {
+        Iteration<Graph<VLabel, ELabel>.Edge> myEdges = G.outEdges(v);
+        if (!myEdges.hasNext()) {
+            try {
+                _finalVertex = v;
+                postVisit(postList.pop());
+                _finalVertex = null;
+                return;
+            } catch (RejectException e) {
+                return;
+            }
+        }
+        while (myEdges.hasNext()) {
+            Graph<VLabel, ELabel>.Edge currEdge = myEdges.next();
+            Graph<VLabel, ELabel>.Vertex currVtx = currEdge.getV1();
+            if (marked.contains(currVtx)) {
+                continue;
+            }
+            try {
+                _finalVertex = currVtx;
+                _finalEdge = currEdge;
+                preVisit(currEdge, currEdge.getV0());
+                _finalVertex = null;
+                _finalEdge = null;
+                if (!marked.contains(currVtx)) {
+                    fringe.addLast(currVtx);
+                }
+            } catch (RejectException e) {
+                continue;
+            }
+        }
+    }
+
+    /** This method helps breadth first traverse do its recursive call down
+     *  the current vertex from FRINGE on graph G. POSTLIST determines the
+     *  order of the postvisit calls. */
+    private void breadthIter(Graph<VLabel, ELabel> G,
+            LinkedList<Graph<VLabel, ELabel>.Vertex> fringe,
+            Stack<Graph<VLabel, ELabel>.Vertex> postList) {
+        while (!fringe.isEmpty()) {
+            Graph<VLabel, ELabel>.Vertex curr = fringe.pop();
+            if (marked.contains(curr)) {
+                continue;
+            }
+            marked.add(curr);
+            postList.add(curr);
+            try {
+                _finalVertex = curr;
+                visit(curr);
+                _finalVertex = null;
+            } catch (RejectException e) {
+                continue;
+            }
+            breadthLook(G, curr, fringe, postList);
+        }
+    }
+
+    /** Continue the previous traversal starting from V.
+     *  Continuing a traversal means that we do not traverse
+     *  vertices or edges that have been traversed previously. */
+    public void continueTraversing(Graph<VLabel, ELabel>.Vertex v) {
+        if (currTraversal == 0) {
+            traverse(_graph, v, stored);
+        } else if (currTraversal == 1) {
+            depthFirstTraverse(_graph, v);
+        } else {
+            breadthFirstTraverse(_graph, v);
+        }
+    }
+
+    /** If the traversal ends prematurely, returns the Vertex argument to
+     *  preVisit that caused a Visit routine to return false.  Otherwise,
+     *  returns null. */
+    public Graph<VLabel, ELabel>.Vertex finalVertex() {
+        return _finalVertex;
+    }
+
+    /** If the traversal ends prematurely, returns the Edge argument to
+     *  preVisit that caused a Visit routine to return false. If it was not
+     *  an edge that caused termination, returns null. */
+    public Graph<VLabel, ELabel>.Edge finalEdge() {
+        return _finalEdge;
+    }
+
+    /** Returns the graph currently being traversed.  Undefined if no traversal
+     *  is in progress. */
+    protected Graph<VLabel, ELabel> theGraph() {
+        return _graph;
+    }
+
+    /** Method to be called when adding the node at the other end of E from V0
+     *  to the fringe. If this routine throws a StopException,
+     *  the traversal ends.  If it throws a RejectException, the edge
+     *  E is not traversed. The default does nothing.
+     */
+    protected void preVisit(Graph<VLabel, ELabel>.Edge e,
+                            Graph<VLabel, ELabel>.Vertex v0) {
+    }
+
+    /** Method to be called when visiting vertex V.  If this routine throws
+     *  a StopException, the traversal ends.  If it throws a RejectException,
+     *  successors of V do not get visited from V. The default does nothing. */
+    protected void visit(Graph<VLabel, ELabel>.Vertex v) {
+    }
+
+    /** Method to be called immediately after finishing the traversal
+     *  of successors of vertex V in pre- and post-order traversals.
+     *  If this routine throws a StopException, the traversal ends.
+     *  Throwing a RejectException has no effect. The default does nothing.
+     */
+    protected void postVisit(Graph<VLabel, ELabel>.Vertex v) {
+    }
+
+    /** The Vertex (if any) that terminated the last traversal. */
+    protected Graph<VLabel, ELabel>.Vertex _finalVertex;
+    /** The Edge (if any) that terminated the last traversal. */
+    protected Graph<VLabel, ELabel>.Edge _finalEdge;
+    /** The graph currently being traversed. */
+    protected Graph<VLabel, ELabel> _graph;
+    /** The set that determines whether or not I have visited this vertex. */
+    private HashSet<Graph<VLabel, ELabel>.Vertex> marked;
+    /** Determines what kind of traversal I am currently in. 0 for general
+     *  traversal, 1 for depth first traversal, and 2 for breadth first
+     *  traversal. */
+    private int currTraversal;
+    /** Stores the comparator for the general traversal in case we want to
+     *  continue the traversal later. */
+    private Comparator<VLabel> stored;
+}

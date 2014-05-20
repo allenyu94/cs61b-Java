@@ -1,0 +1,252 @@
+package jump61;
+
+import java.util.ArrayList;
+import java.util.Hashtable;
+import java.util.Iterator;
+
+import static jump61.Color.*;
+
+/** An automated Player.
+ *  @author Allen Yu
+ */
+class AI extends Player {
+
+    /** A new player of GAME initially playing COLOR that chooses
+     *  moves automatically.
+     */
+    AI(Game game, Color color) {
+        super(game, color);
+        alpha = Integer.MIN_VALUE;
+        beta = Integer.MAX_VALUE;
+    }
+
+    @Override
+    void makeMove() {
+        Game game = getGame();
+        Board r = getBoard();
+        Board b = new MutableBoard(r);
+        ArrayList<Integer> moves = new ArrayList<Integer>();
+        int depth = 4;
+        int max = minmax(getColor(), b, depth, 0, moves);
+        reset();
+        int pos = moves.get(game.randInt(moves.size()));
+        int countdown = 0;
+        if (!lose.isEmpty()) {
+            for (int y = 4; y >= 0; y--) {
+                if (lose.containsKey(y) && r.isLegal(getColor().opposite(),
+                        lose.get(y))) {
+                    countdown = lose.get(y);
+                }
+            }
+        }
+        if (!win.isEmpty()) {
+            for (int i = 4; i >= 0; i--) {
+                if (win.containsKey(i) && r.isLegal(getColor(), win.get(i))
+                        && i >= countdown) {
+                    pos = win.get(i);
+                    break;
+                }
+            }
+        }
+        game.makeMove(pos);
+        game.message("%s moves %d %d.%n", getColor(),
+                b.row(pos), b.col(pos));
+        win.clear();
+    }
+
+    /** Return the value of performing minmax on a current board
+     *  B with color P with depth D. START is the current position
+     *  while traversing the minmax tree. MOVES is the list of moves
+     *  that have the highest/lowest value depending on current type
+     *  of tree.
+     */
+    private int minmax(Color p, Board b, int d, int start,
+            ArrayList<Integer> moves) {
+        if (moves == null) {
+            moves = new ArrayList<Integer>();
+        }
+        if (d <= 0) {
+            return staticEval(p, b);
+        }
+        int value = 0;
+        if (start % 2 == 0) {
+            int maxsofar = Integer.MIN_VALUE;
+            for (int k = 0; k < b.size() * b.size(); k++) {
+                if (b.isLegal(p, k)) {
+                    b.addSpot(p, k);
+                    if (b.getWinner() != null
+                            && Color.parseColor(b.getWinner()) == p) {
+                        value = Integer.MAX_VALUE;
+                        win.put(d, k);
+                    } else {
+                        value = minmax(p.opposite(), b, d - 1, start + 1, null);
+                    }
+                    b.undo();
+                    if (value > alpha) {
+                        alpha = value;
+                    }
+                    if (value > maxsofar) {
+                        moves.clear();
+                    }
+                    if (value >= maxsofar) {
+                        maxsofar = value;
+                        moves.add(k);
+                    }
+                    if (alpha > beta) {
+                        if (start != 0) {
+                            moves.clear();
+                        }
+                        if (maxsofar < beta) {
+                            beta = maxsofar;
+                        }
+                        alpha = Integer.MIN_VALUE;
+                        return value;
+                    }
+                }
+            }
+            if (maxsofar < beta) {
+                beta = maxsofar;
+            }
+            alpha = Integer.MIN_VALUE;
+            return maxsofar;
+        } else if (start % 2 == 1) {
+            return minTree(p, b, d, start, value, moves);
+        }
+        return -1;
+    }
+
+    /** Reset the values for alpha and beta. */
+    private void reset() {
+        alpha = Integer.MIN_VALUE;
+        beta = Integer.MAX_VALUE;
+    }
+
+    /** Returns the lowest value and prunes for MIN tree given color P,
+     *  board B, depth D, current depth START, VALUE, and MOVES. */
+    private int minTree(Color p, Board b, int d, int start, int value,
+            ArrayList<Integer> moves) {
+        int minsofar = Integer.MAX_VALUE;
+        for (int j = 0; j < b.size() * b.size(); j++) {
+            if (b.isLegal(p, j)) {
+                b.addSpot(p, j);
+                if (b.getWinner() != null
+                        && Color.parseColor(b.getWinner()) == p) {
+                    value = Integer.MIN_VALUE;
+                    win.put(d, j);
+                } else {
+                    value = minmax(p.opposite(), b, d - 1, start + 1, null);
+                }
+                b.undo();
+                if (value < beta) {
+                    beta = value;
+                }
+                if (value < minsofar) {
+                    moves.clear();
+                }
+                if (value <= minsofar) {
+                    minsofar = value;
+                    moves.add(j);
+                }
+                if (alpha > beta) {
+                    if (start != 0) {
+                        moves.clear();
+                    }
+                    if (minsofar > alpha) {
+                        alpha = minsofar;
+                    }
+                    beta = Integer.MAX_VALUE;
+                    staticEval(p, b);
+                    return value;
+                }
+            }
+        }
+        if (minsofar > alpha) {
+            alpha = minsofar;
+        }
+        beta = Integer.MAX_VALUE;
+        return minsofar;
+    }
+
+    /** Returns heuristic value of board B for player P.
+     *  Higher is better for P. */
+    private int staticEval(Color p, Board b) {
+        return b.numOfColor(p) - b.numOfColor(p.opposite());
+    }
+
+    /** Returns the heuristic value of board B for player P
+     * for when the board still has empty squares. Adding these
+     * values into VALUE*/
+    private int lessNeighbors(Color p, Board b) {
+        int currvalue = 0;
+        int[] corners = findCorners(b);
+        for (int x: corners) {
+            if (b.getSquare(x).color() == p) {
+                currvalue += 10;
+            }
+        }
+        return currvalue;
+    }
+
+    /** Returns all the corners of the given board B.*/
+    private int[] findCorners(Board b) {
+        int[] corners = new int[4];
+        corners[0] = 0;
+        corners[1] = b.size() - 1;
+        corners[2] = b.size() * b.size() - b.size();
+        corners[3] = b.size() * b.size() - 1;
+        return corners;
+    }
+
+    /** Returns all the sides of the given board B. */
+    private int[] findSides(Board b) {
+        int numSides;
+        if (b.size() == 2) {
+            numSides = 0;
+        } else {
+            numSides = (int) Math.pow(2.0, b.size() - 1);
+        }
+        int iter = 0;
+        int [] sides = new int[numSides];
+        for (int i = 0; i < b.size(); i++) {
+            for (int k = 0; k < b.size(); k++) {
+                if (b.neighbors(i, k) == 3) {
+                    sides[iter] = b.sqNum(i, k);
+                }
+            }
+        }
+        return sides;
+    }
+
+    /** Returns true if this current place POS is a corner. */
+    private boolean corner(int pos) {
+        return _board.neighbors(pos) == 2;
+    }
+
+    /** Returns true if this current place POS is a side. */
+    private boolean side(int pos) {
+        return _board.neighbors(pos) == 3;
+    }
+
+    /** Returns true if this current place POS has 4 neighbors. */
+    private boolean reg(int pos) {
+        return _board.neighbors(pos) == 4;
+    }
+
+    /** The board of this game. */
+    private Board _board;
+
+    /** The alpha value of the minmax tree. */
+    private int alpha;
+
+    /** The beta value of the minmax tree. */
+    private int beta;
+
+    /** The hashtable assigning win turns to depth of the minmax. */
+    private Hashtable<Integer, Integer> win =
+            new Hashtable<Integer, Integer>();
+
+    /** The hashtable assigning lose turns to depth of the minmax. */
+    private Hashtable<Integer, Integer> lose =
+            new Hashtable<Integer, Integer>();
+}
+

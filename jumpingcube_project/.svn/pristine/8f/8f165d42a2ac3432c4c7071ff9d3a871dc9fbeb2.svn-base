@@ -1,0 +1,154 @@
+package jump61;
+
+
+import static jump61.Color.*;
+
+/** A Jump61 board state.
+ *  @author Allen Yu
+ */
+class MutableBoard extends Board {
+
+    /** An N x N board in initial configuration. */
+    MutableBoard(int N) {
+        super();
+        _N = N;
+        board = new Square[size()][size()];
+        clear(size());
+    }
+
+    /** A board whose initial contents are copied from BOARD0. Clears the
+     *  undo history. */
+    MutableBoard(Board board0) {
+        super();
+        board = new Square[size()][size()];
+        copy(board0);
+    }
+
+    @Override
+    void clear(int N) {
+        for (int i = 0; i < size(); i++) {
+            for (int j = 0; j < size(); j++) {
+                board[i][j] = new Square();
+            }
+        }
+        _N = N;
+        _moves = 0;
+    }
+
+    @Override
+    void copy(Board board2) {
+        board = new Square[board2.size()][board2.size()];
+        for (int i = 0; i < size(); i++) {
+            for (int k = 0; k < size(); k++) {
+                board[i][k] = board2.board[i][k];
+            }
+        }
+    }
+
+    @Override
+    int size() {
+        return _N;
+    }
+
+    @Override
+    int spots(int r, int c) {
+        return getSquare(r,c).spots();
+    }
+
+    @Override
+    int spots(int n) {
+        return getSquare(n).spots();
+    }
+
+    @Override
+    Color color(int r, int c) {
+        return getSquare(r,c).color();
+    }
+
+    @Override
+    Color color(int n) {
+        return getSquare(n).color();
+    }
+
+    @Override
+    int numMoves() {
+        return _moves;
+    }
+
+    @Override
+    int numOfColor(Color color) {
+        int count = 0;
+        for (int i = 0; i < size(); i++) {
+            for (int j = 0; j < size(); j++) {
+                if (board[i][j].color() == color) {
+                    count += 1;
+                }
+            }
+        }
+        return count;
+    }
+
+    @Override
+    void addSpot(Color player, int r, int c) {
+        getSquare(r, c).addspot();
+        getSquare(r, c).setcolor(player);
+        if (getSquare(r, c).spots() > neighbors(r, c)) {
+            jump(sqNum(r,c));
+        }
+    }
+
+    @Override
+    void addSpot(Color player, int n) {
+        getSquare(n).addspot();
+        getSquare(n).setcolor(player);
+    }
+
+    @Override
+    void set(int r, int c, int num, Color player) {
+        board[r - 1][c - 1] = new Square(num, player);
+    }
+
+    @Override
+    void set(int n, int num, Color player) {
+        if (getSquare(n) != null) {
+            getSquare(n).setcolor(player);
+            getSquare(n).setSpots(num);
+        }
+        board[row(n) - 1][col(n) - 1] = new Square(num, player);
+    }
+
+    @Override
+    void setMoves(int num) {
+        assert num > 0;
+        _moves = num;
+    }
+
+    @Override
+    void undo() {
+        // FIXME
+    }
+
+    /** Do all jumping on this board, assuming that initially, S is the only
+     *  square that might be over-full. */
+    private void jump(int S) {
+        if (exists(S - size())) {
+            addSpot(whoseMove(), S - size());
+        }
+        if (exists(S - 1)) {
+            addSpot(whoseMove(), S - 1);
+        }
+        if (exists(S + 1)) {
+            addSpot(whoseMove(), S + 1);
+        }
+        if (exists(S + size())) {
+            addSpot(whoseMove(), S + size());
+        }
+        getSquare(S).spill();
+    }
+
+    /** Total combined number of moves by both sides. */
+    protected int _moves;
+    /** Convenience variable: size of board (squares along one edge). */
+    private int _N;
+
+}

@@ -1,0 +1,3 @@
+I am having an error with my PageAssembler. Notably when I try to create a new page with the form feed "\f".
+It prints out an extra line in the beginning of the new page when it shouldn't be.
+To recreate this error, run the newpage.tx (which corresponds to the 02-pages.tx test in the autograder) file with my program.

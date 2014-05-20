@@ -1,0 +1,31 @@
+package graph;
+
+import static org.junit.Assert.*;
+
+import org.junit.Test;
+
+public class UndirectedGraphTest {
+
+    @Test
+    public void test() {
+        UndirectedGraph<String, String> UG = new UndirectedGraph<String, String>();
+        Graph<String, String>.Vertex v1 = UG.add("vertex 1");
+        Graph<String, String>.Vertex v2 = UG.add("vertex 2");
+        Graph<String, String>.Vertex v3 = UG.add("vertex 3");
+        Graph<String, String>.Vertex v4 = UG.add("vertex 4");
+
+        UG.add(v2, v3, "edge 1");
+        UG.add(v3, v4, "edge 2");
+
+        assertEquals("wrong number of undirected edges for vertex 3", UG.degree(v3), 2);
+
+        Iteration<Graph<String, String>.Edge> e = UG.edges(v3);
+        assertEquals("this is not a succeeding vertex of vertex 3", e.next().getV(v3), v2);
+        assertEquals("this is not a succeeding vertex of vertex 3", e.next().getV(v3), v4);
+        assertEquals("wrong number of successor vertices for vertex 3", UG.degree(v3), 2);
+        assertEquals("wrong number of undirected edges for vertex 1",
+                UG.degree(v1), 0);
+        assertEquals("cannot find edge 1", UG.contains(v3, v4, "edge 2"), true);
+    }
+
+}

@@ -1,0 +1,298 @@
+package graph;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+
+/** Assorted graph algorithms.
+ *  @author Allen Yu
+ */
+public final class Graphs {
+
+    /* A* Search Algorithms */
+
+    /** Returns a path from V0 to V1 in G of minimum weight, according
+     *  to the edge weighter EWEIGHTER.  VLABEL and ELABEL are the types of
+     *  vertex and edge labels.  Assumes that H is a distance measure
+     *  between vertices satisfying the two properties:
+     *     a. H.dist(v, V1) <= shortest path from v to V1 for any v, and
+     *     b. H.dist(v, w) <= H.dist(w, V1) + weight of edge (v, w), where
+     *        v and w are any vertices in G.
+     *
+     *  As a side effect, uses VWEIGHTER to set the weight of vertex v
+     *  to the weight of a minimal path from V0 to v, for each v in
+     *  the returned path and for each v such that
+     *       minimum path length from V0 to v + H.dist(v, V1)
+     *              < minimum path length from V0 to V1.
+     *  The final weights of other vertices are not defined.  If V1 is
+     *  unreachable from V0, returns null and sets the minimum path weights of
+     *  all reachable nodes.  The distance to a node unreachable from V0 is
+     *  Double.POSITIVE_INFINITY. */
+    public static <VLabel, ELabel> List<Graph<VLabel, ELabel>.Edge>
+    shortestPath(Graph<VLabel, ELabel> G,
+                 Graph<VLabel, ELabel>.Vertex V0,
+                 Graph<VLabel, ELabel>.Vertex V1,
+                 Distancer<? super VLabel> h,
+                 Weighter<? super VLabel> vweighter,
+                 Weighting<? super ELabel> eweighter) {
+
+        HashSet<Graph<VLabel, ELabel>.Vertex> closed =
+                new HashSet<Graph<VLabel, ELabel>.Vertex>();
+        ArrayList<Graph<VLabel, ELabel>.Vertex> open =
+                new ArrayList<Graph<VLabel, ELabel>.Vertex>();
+        HashMap<Graph<VLabel, ELabel>.Vertex, Graph<VLabel, ELabel>.Edge> path =
+                new HashMap<Graph<VLabel, ELabel>.Vertex,
+                Graph<VLabel, ELabel>.Edge>();
+
+        initGraph(G, V0, vweighter);
+
+        open.add(V0);
+
+        while (!open.isEmpty()) {
+            Graph<VLabel, ELabel>.Vertex curr =
+                    findLight(open, V1, vweighter, h);
+            System.out.println(curr.getLabel());
+            if (curr == V1) {
+                return rebuildPath(path, V0);
+            }
+            closed.add(curr);
+            open.remove(curr);
+            double currHeur = Double.POSITIVE_INFINITY;
+            Graph<VLabel, ELabel>.Edge edgePath = null;
+            for (Graph<VLabel, ELabel>.Vertex child: G.successors(curr)) {
+                Graph<VLabel, ELabel>.Edge currEdge =
+                        findEdge(G, curr, child, eweighter);
+                double totalWeight = vweighter.weight(curr.getLabel())
+                           + eweighter.weight(currEdge.getLabel());
+                if (totalWeight < vweighter.weight(child.getLabel())) {
+                    vweighter.setWeight(child.getLabel(), totalWeight);
+                }
+                double f = vweighter.weight(child.getLabel())
+                           + h.dist(child.getLabel(), V1.getLabel());
+                if (f < currHeur) {
+                    currHeur = f;
+                    edgePath = currEdge;
+                }
+                open.add(child);
+            }
+            path.put(curr, edgePath);
+        }
+        return null;
+    }
+
+    /** Sets the given vertex V0 weight to 0 and sets all the other
+    *  vertices to positive infinity with a VWEIGHTER given a graph
+    *  G. VLABEL and ELABEL are types of vertex and edge labels. */
+    private static <VLabel, ELabel> void initGraph(Graph<VLabel, ELabel> G,
+                   Graph<VLabel, ELabel>.Vertex v0,
+                   Weighter<? super VLabel> vweighter) {
+        for (Graph<VLabel, ELabel>.Vertex v: G.vertices()) {
+            if (v == v0) {
+                vweighter.setWeight(v.getLabel(), 0);
+            } else {
+                vweighter.setWeight(v.getLabel(), Double.POSITIVE_INFINITY);
+            }
+        }
+    }
+
+    /** Returns the lightest vertex in list OPEN according to its weight and
+    *  its heuristic distance H from the target vertex V1. VLABEL and ELABEL
+    *  are the types of vertex and edge labels. Uses VWEIGHTER to set and
+    *  get weight from vertices. */
+    private static <VLabel, ELabel> Graph<VLabel, ELabel>.Vertex
+    findLight(ArrayList<Graph<VLabel, ELabel>.Vertex> open,
+                             Graph<VLabel, ELabel>.Vertex v1,
+                             Weighter<? super VLabel> vweighter,
+                             Distancer<? super VLabel> h) {
+        double lightestWeight = Double.POSITIVE_INFINITY;
+        Graph<VLabel, ELabel>.Vertex lightest = null;
+        for (Graph<VLabel, ELabel>.Vertex v: open) {
+            if ((vweighter.weight(v.getLabel())
+                    + h.dist(v.getLabel(), v1.getLabel())) < lightestWeight) {
+                lightest = v;
+                lightestWeight = vweighter.weight(v.getLabel());
+            }
+        }
+        return lightest;
+    }
+
+    /** Returns the corresponding edge that has V0 as from vertex and V1
+     *  as to vertex on a given graph G. Finds the lowest weighted edge
+     *  between these two using EWEIGHTER. VLABEL and ELABEL are types
+     *  of vertex and edge labels. */
+    private static <VLabel, ELabel> Graph<VLabel, ELabel>.Edge
+    findEdge(Graph<VLabel, ELabel> G,
+             Graph<VLabel, ELabel>.Vertex v0,
+             Graph<VLabel, ELabel>.Vertex v1,
+             Weighting<? super ELabel> eweighter) {
+        double lightestWeight = Double.POSITIVE_INFINITY;
+        Graph<VLabel, ELabel>.Edge lightestEdge = null;
+        for (Graph<VLabel, ELabel>.Edge e: G.outEdges(v0)) {
+            if (e.getV0().equals(v0) && e.getV1().equals(v1)
+                && eweighter.weight(e.getLabel()) < lightestWeight) {
+                lightestEdge = e;
+            }
+        }
+        return lightestEdge;
+    }
+
+    /** Returns the reconstructed pathing for PATH given starting vertex V0.
+     *  VLABEL and ELABEL are types of vertex and edge labels. */
+    private static <VLabel, ELabel> List<Graph<VLabel, ELabel>.Edge>
+    rebuildPath(HashMap<Graph<VLabel, ELabel>.Vertex,
+                Graph<VLabel, ELabel>.Edge> path,
+                Graph<VLabel, ELabel>.Vertex v0) {
+        ArrayList<Graph<VLabel, ELabel>.Edge> finalPath =
+                new ArrayList<Graph<VLabel, ELabel>.Edge>();
+        Graph<VLabel, ELabel>.Vertex curr = v0;
+        while (path.containsKey(curr)) {
+            Graph<VLabel, ELabel>.Edge nxt = path.get(curr);
+            finalPath.add(nxt);
+            path.remove(curr);
+            curr = nxt.getV(curr);
+        }
+        return finalPath;
+    }
+
+    /** Returns a path from V0 to V1 in G of minimum weight, according
+     *  to the weights of its edge labels.  VLABEL and ELABEL are the types of
+     *  vertex and edge labels.  Assumes that H is a distance measure
+     *  between vertices satisfying the two properties:
+     *     a. H.dist(v, V1) <= shortest path from v to V1 for any v, and
+     *     b. H.dist(v, w) <= H.dist(w, V1) + weight of edge (v, w), where
+     *        v and w are any vertices in G.
+     *
+     *  As a side effect, sets the weight of vertex v to the weight of
+     *  a minimal path from V0 to v, for each v in the returned path
+     *  and for each v such that
+     *       minimum path length from V0 to v + H.dist(v, V1)
+     *           < minimum path length from V0 to V1.
+     *  The final weights of other vertices are not defined.
+     *
+     *  This function has the same effect as the 6-argument version of
+     *  shortestPath, but uses the .weight and .setWeight methods of
+     *  the edges and vertices themselves to determine and set
+     *  weights. If V1 is unreachable from V0, returns null and sets
+     *  the minimum path weights of all reachable nodes.  The distance
+     *  to a node unreachable from V0 is Double.POSITIVE_INFINITY. */
+    public static
+    <VLabel extends Weightable, ELabel extends Weighted>
+    List<Graph<VLabel, ELabel>.Edge>
+    shortestPath(Graph<VLabel, ELabel> G,
+                 Graph<VLabel, ELabel>.Vertex V0,
+                 Graph<VLabel, ELabel>.Vertex V1,
+                 Distancer<? super VLabel> h) {
+
+        HashSet<Graph<VLabel, ELabel>.Vertex> closed =
+                new HashSet<Graph<VLabel, ELabel>.Vertex>();
+        ArrayList<Graph<VLabel, ELabel>.Vertex> open =
+                new ArrayList<Graph<VLabel, ELabel>.Vertex>();
+        HashMap<Graph<VLabel, ELabel>.Vertex, Graph<VLabel,
+        ELabel>.Edge> path =
+                new HashMap<Graph<VLabel, ELabel>.Vertex,
+                Graph<VLabel, ELabel>.Edge>();
+
+        initGraph(G, V0);
+
+        open.add(V0);
+
+        while (!open.isEmpty()) {
+            Graph<VLabel, ELabel>.Vertex curr = findLight(open, V1, h);
+            if (curr == V1) {
+                return rebuildPath(path, V0);
+            }
+            closed.add(curr);
+            open.remove(curr);
+            double currHeur = Double.POSITIVE_INFINITY;
+            Graph<VLabel, ELabel>.Edge edgePath = null;
+            for (Graph<VLabel, ELabel>.Vertex child: G.successors(curr)) {
+                if (!closed.contains(child)) {
+                    Graph<VLabel, ELabel>.Edge currEdge =
+                            findEdge(G, curr, child);
+                    double totalWeight = curr.getLabel().weight()
+                               + currEdge.getLabel().weight();
+                    if (totalWeight < child.getLabel().weight()) {
+                        child.getLabel().setWeight(totalWeight);
+                    }
+                    double f = totalWeight
+                               + h.dist(child.getLabel(), V1.getLabel());
+                    if (f < currHeur) {
+                        currHeur = f;
+                        edgePath = currEdge;
+                    }
+                    open.add(child);
+                }
+            }
+            if (edgePath != null) {
+                path.put(curr, edgePath);
+            }
+        }
+        return null;
+    }
+
+    /** Sets the given vertex V0 weight to 0 and sets all the other
+     *  vertices to positive infinity given a graph G. VLABEL and
+     *  ELABEL are types of labels. */
+    private static <VLabel extends Weightable, ELabel extends Weighted>
+    void initGraph(Graph<VLabel, ELabel> G,
+                   Graph<VLabel, ELabel>.Vertex v0) {
+        for (Graph<VLabel, ELabel>.Vertex v: G.vertices()) {
+            if (v == v0) {
+                v.getLabel().setWeight(0);
+            } else {
+                v.getLabel().setWeight(Double.POSITIVE_INFINITY);
+            }
+        }
+    }
+
+     /** Returns the lightest vertex in list OPEN according to its weight and
+      *  its heuristic distance H from the target vertex V1. VLABEL and ELABEL
+      *  are types of vertex and edge labels. */
+    private static <VLabel extends Weightable, ELabel extends Weighted>
+    Graph<VLabel, ELabel>.Vertex
+    findLight(ArrayList<Graph<VLabel, ELabel>.Vertex> open,
+                             Graph<VLabel, ELabel>.Vertex v1,
+                             Distancer<? super VLabel> h) {
+        double lightestWeight = Double.POSITIVE_INFINITY;
+        Graph<VLabel, ELabel>.Vertex lightest = null;
+        for (Graph<VLabel, ELabel>.Vertex v: open) {
+            if ((v.getLabel().weight() + h.dist(v.getLabel(), v1.getLabel()))
+                 < lightestWeight) {
+                lightest = v;
+                lightestWeight = v.getLabel().weight();
+            }
+        }
+        return lightest;
+    }
+
+    /** Returns the corresponding edge that has V0 as from vertex
+     *  and V1 as to vertex on a given graph G. Finds the lowest
+     *  weighted edge between these two. VLABEL and ELABEL are
+     *  types of vertex and edge labels. */
+    private static <VLabel extends Weightable, ELabel extends Weighted>
+    Graph<VLabel, ELabel>.Edge
+    findEdge(Graph<VLabel, ELabel> G,
+                            Graph<VLabel, ELabel>.Vertex v0,
+                            Graph<VLabel, ELabel>.Vertex v1) {
+        double lightestWeight = Double.POSITIVE_INFINITY;
+        Graph<VLabel, ELabel>.Edge lightestEdge = null;
+        for (Graph<VLabel, ELabel>.Edge e: G.outEdges(v0)) {
+            if (e.getV0().equals(v0) && e.getV1().equals(v1)
+                && e.getLabel().weight() < lightestWeight) {
+                lightestEdge = e;
+            }
+        }
+        return lightestEdge;
+    }
+
+    /** Returns a distancer whose dist method always returns 0. */
+    public static final Distancer<Object> ZERO_DISTANCER =
+        new Distancer<Object>() {
+            @Override
+            public double dist(Object v0, Object v1) {
+                return 0.0;
+            }
+        };
+
+}
